@@ -45,8 +45,6 @@ def _add_mirror_to_new_objects(scene, _depsgraph):
 		modifier = obj.modifiers.new(name="Mirror", type="MIRROR")
 		modifier.mirror_object = scene.new_with_mirrors_anchor
 		modifier.use_axis = scene.new_with_mirrors_axes
-		modifier.use_mirror_merge = scene.new_with_mirrors_merge
-		modifier.use_clip = scene.new_with_mirrors_clipping
 
 
 def _draw_new_mirrors_row(self, context):
@@ -77,8 +75,6 @@ class OBJECT_PT_new_with_mirrors_settings(bpy.types.Panel):
 		layout.prop(scene, "new_with_mirrors_anchor", text="Mirror Anchor")
 		layout.label(text="Mirror Axes")
 		layout.prop(scene, "new_with_mirrors_axes", text="")
-		layout.prop(scene, "new_with_mirrors_merge", text="Merge")
-		layout.prop(scene, "new_with_mirrors_clipping", text="Clipping")
 
 
 def register():
@@ -100,16 +96,6 @@ def register():
 		subtype="XYZ",
 		default=(True, False, False),
 	)
-	bpy.types.Scene.new_with_mirrors_merge = bpy.props.BoolProperty(
-		name="Merge",
-		description="Merge vertices near the mirror plane",
-		default=True,
-	)
-	bpy.types.Scene.new_with_mirrors_clipping = bpy.props.BoolProperty(
-		name="Clipping",
-		description="Prevent vertices from crossing the mirror plane",
-		default=False,
-	)
 
 	bpy.types.DATA_PT_modifiers.append(_draw_new_mirrors_row)
 	bpy.app.handlers.load_post.append(_schedule_object_snapshot)
@@ -128,8 +114,6 @@ def unregister():
 	del bpy.types.Scene.new_with_mirrors_enabled
 	del bpy.types.Scene.new_with_mirrors_anchor
 	del bpy.types.Scene.new_with_mirrors_axes
-	del bpy.types.Scene.new_with_mirrors_merge
-	del bpy.types.Scene.new_with_mirrors_clipping
 	bpy.utils.unregister_class(OBJECT_PT_new_with_mirrors_settings)
 	_known_object_pointers.clear()
 
