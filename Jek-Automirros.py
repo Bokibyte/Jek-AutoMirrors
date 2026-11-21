@@ -3,7 +3,7 @@ bl_info = {
 	"author": "Bokibyte",
 	"version": (1, 0, 0),
 	"blender": (4, 0, 0),
-	"location": "Properties > Modifiers",
+	"location": "3D View > Sidebar > Jek Mirrors",
 	"description": "Add a Mirror modifier to newly created mesh objects",
 	"category": "Object",
 }
@@ -45,28 +45,37 @@ def _add_mirror_to_new_objects(scene, _depsgraph):
 		modifier = obj.modifiers.new(name="Mirror", type="MIRROR")
 		modifier.mirror_object = scene.new_with_mirrors_anchor
 		modifier.use_axis = scene.new_with_mirrors_axes
+		modifier.use_mirror_merge = scene.new_with_mirrors_merge
+		modifier.use_clip = scene.new_with_mirrors_clipping
 
 
-def _draw_new_mirrors_row(self, context):
-	layout = self.layout
-	scene = context.scene
-	row = layout.row(align=True)
-	row.prop(scene, "new_with_mirrors_enabled", text="New w/ Mirrors", toggle=True)
-	settings = row.row(align=True)
-	settings.enabled = scene.new_with_mirrors_enabled
-	settings.popover(
-		panel="OBJECT_PT_new_with_mirrors_settings",
-		text="",
-		icon="PREFERENCES",
-	)
+class VIEW3D_PT_new_with_mirrors(bpy.types.Panel):
+	bl_label = "Auto Mirrors"
+	bl_idname = "VIEW3D_PT_new_with_mirrors"
+	bl_space_type = "VIEW_3D"
+	bl_region_type = "UI"
+	bl_category = "Jek Mirrors"
+
+	def draw(self, context):
+		layout = self.layout
+		scene = context.scene
+		row = layout.row(align=True)
+		row.prop(scene, "new_with_mirrors_enabled", text="New w/ Mirrors", toggle=True)
+		settings = row.row(align=True)
+		settings.enabled = scene.new_with_mirrors_enabled
+		settings.popover(
+			panel="VIEW3D_PT_new_with_mirrors_settings",
+			text="",
+			icon="PREFERENCES",
+		)
 
 
-class OBJECT_PT_new_with_mirrors_settings(bpy.types.Panel):
+class VIEW3D_PT_new_with_mirrors_settings(bpy.types.Panel):
 	bl_label = "New w/ Mirrors"
-	bl_idname = "OBJECT_PT_new_with_mirrors_settings"
-	bl_space_type = "PROPERTIES"
+	bl_idname = "VIEW3D_PT_new_with_mirrors_settings"
+	bl_space_type = "VIEW_3D"
 	bl_region_type = "WINDOW"
-	bl_context = "modifier"
+	bl_context = "objectmode"
 	bl_options = {"INSTANCED"}
 
 	def draw(self, context):
@@ -75,10 +84,13 @@ class OBJECT_PT_new_with_mirrors_settings(bpy.types.Panel):
 		layout.prop(scene, "new_with_mirrors_anchor", text="Mirror Anchor")
 		layout.label(text="Mirror Axes")
 		layout.prop(scene, "new_with_mirrors_axes", text="")
+		layout.prop(scene, "new_with_mirrors_merge", text="Merge")
+		layout.prop(scene, "new_with_mirrors_clipping", text="Clipping")
 
 
 def register():
-	bpy.utils.register_class(OBJECT_PT_new_with_mirrors_settings)
+	bpy.utils.register_class(VIEW3D_PT_new_with_mirrors_settings)
+	bpy.utils.register_class(VIEW3D_PT_new_with_mirrors)
 	bpy.types.Scene.new_with_mirrors_enabled = bpy.props.BoolProperty(
 		name="New w/ Mirrors",
 		description="Add a Mirror modifier to each newly created mesh object",
@@ -96,14 +108,24 @@ def register():
 		subtype="XYZ",
 		default=(True, False, False),
 	)
+	bpy.types.Scene.new_with_mirrors_merge = bpy.props.BoolProperty(
+		name="Merge",
+		description="Merge vertices near the mirror plane",
+		default=True,
+	)
+	bpy.types.Scene.new_with_mirrors_clipping = bpy.props.BoolProperty(
+		name="Clipping",
+		description="Prevent vertices from crossing the mirror plane",
+		default=False,
+	)
 
-	bpy.types.DATA_PT_modifiers.append(_draw_new_mirrors_row)
 	bpy.app.handlers.load_post.append(_schedule_object_snapshot)
 	_schedule_object_snapshot()
 
 
 def unregister():
-	bpy.types.DATA_PT_modifiers.remove(_draw_new_mirrors_row)
+	bpy.utils.unregister_class(VIEW3D_PT_new_with_mirrors)
+	bpy.utils.unregister_class(VIEW3D_PT_new_with_mirrors_settings)
 	if bpy.app.timers.is_registered(_remember_current_objects):
 		bpy.app.timers.unregister(_remember_current_objects)
 	if _add_mirror_to_new_objects in bpy.app.handlers.depsgraph_update_post:
@@ -114,7 +136,8 @@ def unregister():
 	del bpy.types.Scene.new_with_mirrors_enabled
 	del bpy.types.Scene.new_with_mirrors_anchor
 	del bpy.types.Scene.new_with_mirrors_axes
-	bpy.utils.unregister_class(OBJECT_PT_new_with_mirrors_settings)
+	del bpy.types.Scene.new_with_mirrors_merge
+	del bpy.types.Scene.new_with_mirrors_clipping
 	_known_object_pointers.clear()
 
 
